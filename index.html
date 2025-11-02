@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz Pilihan Ganda</title>
+  <title>Quiz Lo Gue</title>
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -411,11 +411,11 @@
               <div class="font-semibold mb-1">Mode</div>
               <label class="inline-flex items-center gap-3">
                 <input type="radio" name="mode" value="practice" ${mode === "practice" ? "checked" : ""}/>
-                <span>Latihan (Realtime Feedback)</span>
+                <span>Latihan</span>
               </label>
               <label class="inline-flex items-center gap-3">
                 <input type="radio" name="mode" value="exam" ${mode === "exam" ? "checked" : ""}/>
-                <span>Ujian (Feedback di Akhir)</span>
+                <span>Ujian </span>
               </label>
             </div>
 
@@ -430,7 +430,7 @@
           </div>
 
           <div class="flex items-center justify-between pt-2">
-            <div class="text-sm ${cd('text-slate-500','text-slate-400')}">Bank Soal: ${QUESTION_BANK.length} butir (acak otomatis)</div>
+            <div class="text-sm ${cd('text-slate-500','text-slate-400')}">Soal: ${QUESTION_BANK.length} butir (acak otomatis)</div>
             <button id="btnStart" class="px-4 py-2 rounded-2xl shadow ${cd('bg-slate-900 text-white hover:bg-slate-800','bg-slate-100 text-slate-900')}">
               Mulai ▶
             </button>
@@ -438,7 +438,7 @@
         </div>
 
         <footer class="text-center text-xs mt-8 ${cd('text-slate-500','text-slate-400')}">
-          Dibuat dengan ❤️. Edit bank soal di dalam kode.
+          opo kon
         </footer>
       `;
 
@@ -729,3 +729,4 @@
   </script>
 </body>
 </html>
+
