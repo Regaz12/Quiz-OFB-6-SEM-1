@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz Pilihan Ganda</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* animasi kecil untuk timer kritis */
+    .pulse { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  </style>
+</head>
+<body class="min-h-screen p-4 transition-colors">
+  <div class="max-w-3xl mx-auto" id="app"></div>
+
+  <script>
+    // ==========================
+    // UTIL
+    // ==========================
+    const $ = (sel, el = document) => el.querySelector(sel);
+    const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
+
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function lsGet(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch { return fallback; }
+    }
+    function lsSet(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    // ==========================
+    // DATA
+    // ==========================
+    /** @typedef {"practice" | "exam"} Mode */
+
+    const QUESTION_BANK = [
+      { id: "q6_1", category: "Mintzberg", text: "What is the impact of age and size on organizational structure according to Mintzberg?", choices: [
+        "They influence the choice of design parameters and coordinating mechanisms.",
+        "They have no significant impact on organizational structure.",
+        "They only affect the external environment of an organization.",
+        "Age and size primarily determine the color-coding of organizational charts.",
+        "Organizational structure is solely influenced by technological factors."
+      ], answerIndex: 0 },
+      { id: "q6_2", category: "Mintzberg", text: "How do age and size contribute to organizational structure development?", choices: [
+        "They have no impact on the development of organizational structure.",
+        "They contribute to the elaboration of administrative structures over time.",
+        "Age and size determine the company's logo and branding.",
+        "They affect the external perception of the organization.",
+        "Organizational structure development is solely determined by market demand."
+      ], answerIndex: 1 },
+      { id: "q6_3", category: "Mintzberg", text: "Which design parameter is influenced by the age and size of an organization?", choices: [
+        "Organizational culture and values.",
+        "The degree of formalization.",
+        "The choice of the CEO.",
+        "The number of products a company produces.",
+        "The company's mission and vision."
+      ], answerIndex: 1 },
+      { id: "q6_4", category: "Mintzberg", text: "How does Mintzberg describe the relationship between age, size, and organizational structure?", choices: [
+        "Age and size have no impact on organizational structure.",
+        "Organizational structure is solely determined by industry type.",
+        "Age and size are associated with the degree of bureaucratization and elaboration.",
+        "Organizational structure is entirely dependent on technological factors.",
+        "The geographical location is the primary determinant of organizational structure."
+      ], answerIndex: 2 },
+      { id: "q6_5", category: "Mintzberg", text: "In the context of organizational development, what role does age play according to Mintzberg?", choices: [
+        "Age has no significant role in organizational development.",
+        "Age is associated with the tendency to move from simple to more complex structures.",
+        "Age determines the level of market competition.",
+        "Organizational development is solely determined by shareholder interests.",
+        "The age of employees is the primary factor influencing organizational structure."
+      ], answerIndex: 1 },
+      { id: "q6_6", category: "Mintzberg", text: "In Mintzberg's framework, which characteristic is NOT typically associated with a simple structure?", choices: [
+        "Centralized decision-making",
+        "Wide spans of control",
+        "High formalization",
+        "Little departmentalization",
+        "Low work specialization"
+      ], answerIndex: 2 },
+      { id: "q6_7", category: "Mintzberg", text: "Why are simple structures often found in small businesses and startups?", choices: [
+        "They are more efficient and cost-effective to operate.",
+        "They allow for greater flexibility and adaptability.",
+        "They provide a clear chain of command and accountability.",
+        "They foster a sense of community and shared purpose.",
+        "They are well-suited for organizations in dynamic and uncertain environments."
+      ], answerIndex: 4 },
+      { id: "q6_8", category: "Mintzberg", text: "Which of the following is NOT an example of an external control that can influence power relationships within an organization?", choices: [
+        "Government regulations",
+        "Labor unions",
+        "Investor demands",
+        "Customer preferences",
+        "Supplier relationships"
+      ], answerIndex: 3 },
+      { id: "q6_9", category: "Mintzberg", text: "Which design parameter is influenced by the age and size of an organization?", choices: [
+        "Organizational culture and values.",
+        "The degree of formalization.",
+        "The choice of the CEO.",
+        "The number of products a company produces.",
+        "The company's mission and vision."
+      ], answerIndex: 1 },
+      { id: "q6_10", category: "Mintzberg", text: "How does Mintzberg describe the relationship between age, size, and organizational structure?", choices: [
+        "Age and size have no impact on organizational structure.",
+        "Organizational structure is solely determined by industry type.",
+        "Age and size are associated with the degree of bureaucratization and elaboration.",
+        "Organizational structure is entirely dependent on technological factors.",
+        "The geographical location is the primary determinant of organizational structure."
+      ], answerIndex: 2 },
+      { id: "q6_11", category: "Mintzberg", text: "In organizational development, what role does age play according to Mintzberg?", choices: [
+        "Age has no significant role in organizational development.",
+        "Age is associated with the tendency to move from simple to more complex structures.",
+        "Age determines the level of market competition.",
+        "Organizational development is solely determined by shareholder interests.",
+        "The age of employees is the primary factor influencing organizational structure."
+      ], answerIndex: 1 },
+      { id: "q6_12", category: "Mintzberg", text: "How do environmental dimensions impact organizational structure according to Mintzberg?", choices: [
+        "Environmental dimensions have no influence on organizational structure.",
+        "They affect the need for coordination mechanisms and structural components.",
+        "Environmental dimensions only determine the office layout.",
+        "Organizational structure is solely determined by employee preferences.",
+        "The geographical location is the primary determinant of organizational structure."
+      ], answerIndex: 1 },
+      { id: "q6_13", category: "Mintzberg", text: "What role do environmental dimensions play in the design of organizational structure?", choices: [
+        "They have no influence on the design of organizational structure.",
+        "They contribute to the choice between organic and mechanistic structures.",
+        "They only impact the selection of office furniture.",
+        "Organizational structure is solely determined by market demand.",
+        "The industry type is the primary determinant of organizational structure."
+      ], answerIndex: 1 },
+      { id: "q6_14", category: "Mintzberg", text: "Which of the following is NOT an example of how environmental dimensions can influence organizational design?", choices: [
+        "A grocery store in a stable and predictable environment may adopt a simple structure.",
+        "A technology company in a dynamic and hostile environment may adopt a complex and adaptive structure.",
+        "A hospital in a complex and diverse environment may adopt a centralized structure with specialized departments.",
+        "A government agency in a stable and predictable environment may adopt a bureaucratic structure.",
+        "A non-profit organization in a diverse and hostile environment may adopt a flexible and collaborative structure."
+      ], answerIndex: 2 },
+      { id: "q6_15", category: "Mintzberg", text: "How does Mintzberg describe the relationship between environmental dimensions and organizational structure?", choices: [
+        "Environmental dimensions have no impact on organizational structure.",
+        "Organizational structure is solely determined by industry type.",
+        "Environmental dimensions influence the need for coordination mechanisms and structural components.",
+        "Organizational structure is entirely dependent on CEO preferences.",
+        "The size of the workforce is the primary determinant of organizational structure."
+      ], answerIndex: 2 },
+      { id: "q6_16", category: "Mintzberg", text: "Which environmental dimension is characterized by frequent and unpredictable changes?", choices: [
+        "Stability",
+        "Complexity",
+        "Diversity",
+        "Hostility",
+        "Dynamism"
+      ], answerIndex: 4 },
+      { id: "q6_17", category: "Mintzberg", text: "Which of the following is NOT an example of an organization that typically adopts a simple structure?", choices: [
+        "A local bakery",
+        "A family-owned restaurant",
+        "A small consulting firm",
+        "A multinational corporation",
+        "A startup technology company"
+      ], answerIndex: 3 },
+      { id: "q6_18", category: "Mintzberg", text: "Which member need is most likely to lead to a decentralized organizational structure?", choices: [
+        "Need for autonomy and self-direction",
+        "Need for security and stability",
+        "Need for recognition and appreciation",
+        "Need for structure and guidance",
+        "Need for belonging and community"
+      ], answerIndex: 0 },
+      { id: "q6_19", category: "Mintzberg", text: "Which cultural influence is most likely to lead to a formal organizational structure?", choices: [
+        "Respect for authority and tradition",
+        "Emphasis on equality and participation",
+        "Focus on innovation and creativity",
+        "Value for flexibility and adaptability",
+        "Preference for consensus-based decision-making"
+      ], answerIndex: 0 },
+      { id: "q6_20", category: "Mintzberg", text: "How does cultural influence impact power relationships in organizational structure according to Mintzberg?", choices: [
+        "Cultural influence has no bearing on power relationships.",
+        "Cultural influence solely depends on the organization's age.",
+        "Cultural influences shape the values and norms that impact the distribution of authority.",
+        "Organizational structure is entirely determined by geographical location.",
+        "The organization's product offerings are the primary determinant of cultural influence."
+      ], answerIndex: 2 },
+      { id: "q6_21", category: "Mintzberg", text: "Which of the following power relationships is most likely to lead to conflict within an organization?", choices: [
+        "Collaborative power",
+        "Expert power",
+        "Legitimate power",
+        "Referent power",
+        "Coercive power"
+      ], answerIndex: 4 },
+      { id: "q6_22", category: "Mintzberg", text: "What are the defining characteristics of Mintzberg's Simple Structure?", choices: [
+        "Highly elaborate technostructure and complex support staff.",
+        "Little or no technostructure, few support staffers, and a loose division of labor.",
+        "Relies heavily on extensive horizontal decentralization.",
+        "Synonymous with rigid and highly formalized communication channels.",
+        "Effectiveness solely depends on a large managerial hierarchy."
+      ], answerIndex: 1 },
+      { id: "q6_23", category: "Mintzberg", text: "What is the decision-making process like in Mintzberg's Simple Structure?", choices: [
+        "Highly analytical and formalized approach.",
+        "Flexible decision-making, with power centralized at the strategic apex.",
+        "Entirely decentralized across all organizational levels.",
+        "Exclusively relies on standardized procedures.",
+        "Middle line plays a dominant decision role."
+      ], answerIndex: 1 },
+      { id: "q6_24", category: "Mintzberg", text: "Under what conditions does Simple Structure thrive according to Mintzberg?", choices: [
+        "Most effective in complex and stable environments.",
+        "Well-suited for simple and dynamic environments, especially in young and small organizations.",
+        "Excels in highly bureaucratic and regulated settings.",
+        "Ideal for large organizations with a complex technical system.",
+        "Most effective with extensive external control."
+      ], answerIndex: 1 },
+      { id: "q6_25", category: "Mintzberg", text: "What is a potential risk associated with Mintzberg's Simple Structure?", choices: [
+        "Risk-free and immune to potential drawbacks.",
+        "Considered the riskiest configuration, hinging on the health and whims of one individual.",
+        "Prone to excessive formalization, leading to rigidity.",
+        "Strategic apex known for decentralized decision-making.",
+        "Middle line resistant to power concentration."
+      ], answerIndex: 1 },
+      { id: "q6_26", category: "Mintzberg", text: "How does Mintzberg describe the organizational culture within Simple Structure?", choices: [
+        "Promotes a highly bureaucratic and formal culture.",
+        "Exclusively fosters centralized decision-making culture.",
+        "Provides a strong sense of mission; employees identify with the leader's vision.",
+        "Characterized by extensive formal procedures and protocols.",
+        "Encourages power distribution across all levels."
+      ], answerIndex: 2 },
+      { id: "q6_27", category: "Mintzberg", text: "What characterizes an Autocratic Organization?", choices: [
+        "Promotes extensive decentralization of power.",
+        "Concentration of power at the top; chief executive hoards decision authority.",
+        "Emphasizes fully democratic decision-making.",
+        "Relies on a highly bureaucratic structure with a flattened hierarchy.",
+        "Decision-making distributed equally across all levels."
+      ], answerIndex: 1 },
+      { id: "q6_28", category: "Mintzberg", text: "A common characteristic of leadership in an Autocratic Organization is…", choices: [
+        "Encourages shared decision-making.",
+        "Chief executive hoards power and avoids formalization of behavior.",
+        "Emphasizes a laissez-faire approach.",
+        "Promotes extensive collaboration among members.",
+        "Decisions made collectively by the leadership team."
+      ], answerIndex: 1 },
+      { id: "q6_29", category: "Mintzberg", text: "What factor can lead to the development of an Autocratic Organization?", choices: [
+        "Extensive decentralization.",
+        "High degree of external control.",
+        "Personal needs for power by the chief executive (hoarding decision authority).",
+        "Response to simple and dynamic environments.",
+        "Thrives in highly bureaucratic settings."
+      ], answerIndex: 2 },
+      { id: "q6_30", category: "Mintzberg", text: "How is decision-making described in Autocratic Organizations?", choices: [
+        "Highly democratic and participatory approach.",
+        "Relies on decentralized processes.",
+        "Single person (chief executive) decides without extensive consultation.",
+        "Emphasizes collaborative, team-oriented style.",
+        "Middle line plays a dominant role."
+      ], answerIndex: 2 },
+      { id: "q6_31a", category: "Mintzberg", text: "What is a potential cultural characteristic of Autocratic Organizations?", choices: [
+        "Foster extensive collaboration and shared decision-making.",
+        "Exclusively promote bureaucratic and formal cultures.",
+        "Encourage a laissez-faire cultural approach.",
+        "Power of the chief executive is not challenged; decisions driven by the leader's preferences.",
+        "Marked by extensive decentralization of power."
+      ], answerIndex: 3 },
+      { id: "q6_31b", category: "Mintzberg", text: "What characterizes a Crisis Organization in Mintzberg's design?", choices: [
+        "Emphasizes a routine and stable work environment.",
+        "Appears when extreme hostility forces temporary centralization of decision-making.",
+        "Thrives in environments with low uncertainty.",
+        "Relies on extensive bureaucratic structures.",
+        "Decision-making is decentralized across all levels."
+      ], answerIndex: 1 },
+      { id: "q6_32", category: "Mintzberg", text: "When might a Crisis Organization variant (synthetic organization) be established?", choices: [
+        "In routine and predictable environments.",
+        "To deal with natural disasters in extremely hostile environments.",
+        "Common in organizations with elaborate bureaucratic structures.",
+        "In stable and simple organizational settings.",
+        "Preferred in large organizations with a hierarchical structure."
+      ], answerIndex: 1 },
+      { id: "q6_33", category: "Mintzberg", text: "What impact does a crisis have on organizational structure?", choices: [
+        "Leads to extensive decentralization.",
+        "Results in centralization to enable a coordinated response.",
+        "Tends to establish routine structures.",
+        "Has no impact on structure.",
+        "Emphasizes a bureaucratic approach."
+      ], answerIndex: 1 },
+      { id: "q6_34", category: "Mintzberg", text: "Which factor distinguishes Crisis Organizations from other structures?", choices: [
+        "Focus on routine and predictable environments.",
+        "Characterized by extensive decentralization.",
+        "Temporary centralization in response to extreme hostility.",
+        "Permanent centralization even in non-hostile environments.",
+        "Emphasis on bureaucratic and formal structures."
+      ], answerIndex: 2 },
+      { id: "q6_35", category: "Mintzberg", text: "What environment is conducive to establishing a Crisis Organization?", choices: [
+        "Routine and simple environments.",
+        "Highly bureaucratic settings.",
+        "Preferable in dynamic and complex environments.",
+        "Extremely hostile and unpredictable environments.",
+        "Organizations with extensive decentralization of power."
+      ], answerIndex: 3 },
+      { id: "q6_36", category: "Mintzberg", text: "What characterizes a Charismatic Organization?", choices: [
+        "Relies on extensive bureaucracy for decision-making.",
+        "Emphasizes decentralization across all levels.",
+        "Marked by a lack of leadership influence.",
+        "Led by a charismatic leader who gains power because followers lavish it upon them.",
+        "Has a highly formalized structure."
+      ], answerIndex: 3 },
+      { id: "q6_37", category: "Mintzberg", text: "When does a Charismatic Organization tend to emerge?", choices: [
+        "Prevalent in routine and stable environments.",
+        "Emerge in highly bureaucratic settings.",
+        "Emerge when a leader's charisma is a significant factor, regardless of environment.",
+        "Common in organizations with decentralized decision-making.",
+        "Exclusively found in large organizations."
+      ], answerIndex: 2 },
+      { id: "q6_38", category: "Mintzberg", text: "What distinguishes a Charismatic Organization's power structure?", choices: [
+        "Emphasizes permanent centralization of power.",
+        "Leader gains authority due to followers' admiration, not hoarding or bureaucracy.",
+        "Exclusively relies on decentralized decision-making.",
+        "Highly bureaucratic power structure.",
+        "Emphasizes delegation of power to lower levels."
+      ], answerIndex: 1 },
+      { id: "q6_39", category: "Mintzberg", text: "How is leadership style within a Charismatic Organization described?", choices: [
+        "Highly bureaucratic leadership style.",
+        "Charismatic style; followers attracted by personal qualities rather than formal structures.",
+        "Leaders emphasize decentralization at all costs.",
+        "Leaders hoard power and avoid personal connections.",
+        "Leaders rely on routine and stable approaches."
+      ], answerIndex: 1 },
+      { id: "q6_40", category: "Mintzberg", text: "What role does culture play in Charismatic Organizations?", choices: [
+        "Culture emphasizes bureaucracy and formalization.",
+        "Culture encourages decentralization.",
+        "Culture often plays a prominent role; strong leaders coordinate through direct supervision (esp. in less industrialized societies).",
+        "Culture avoids any form of power concentration.",
+        "Culture emphasizes routine and predictability."
+      ], answerIndex: 2 },
+    ];
+
+    // ==========================
+    // STATE
+    // ==========================
+    let theme = lsGet("qz_theme", "light");        // "light" | "dark"
+    let mode = lsGet("qz_mode", "practice");       // "practice" | "exam"
+    let minutes = lsGet("qz_timer_minutes", 20);   // number
+
+    let stage = "setup"; // "setup" | "play" | "result"
+    let playQuestions = [];
+    let currentIdx = 0;
+    let answers = [];   // (string|null)[]
+    let revealed = [];  // boolean[]
+    let remaining = 0;  // seconds remaining
+    let elapsed = 0;    // seconds elapsed
+    let timerId = null;
+
+    // ==========================
+    // THEME
+    // ==========================
+    function applyTheme() {
+      const isDark = theme === "dark";
+      const body = document.body;
+      body.classList.remove("bg-slate-50","text-slate-800","bg-slate-900","text-slate-100");
+      if (isDark) body.classList.add("bg-slate-900","text-slate-100");
+      else body.classList.add("bg-slate-50","text-slate-800");
+    }
+    function cd(light, dark) { return theme === "dark" ? dark : light; }
+    applyTheme();
+
+    // ==========================
+    // RENDER
+    // ==========================
+    const app = document.getElementById("app");
+
+    function fmt(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    }
+
+    function render() {
+      if (stage === "setup") renderSetup();
+      else if (stage === "play") renderPlay();
+      else renderResult();
+    }
+
+    function headerBar() {
+      return `
+        <header class="flex items-center justify-between py-4">
+          <h1 class="text-2xl md:text-3xl font-bold">Quiz Pilihan Ganda</h1>
+          <div class="flex items-center gap-2">
+            <button id="btnTheme" class="text-sm px-3 py-2 rounded-xl shadow hover:shadow-md border ${cd('bg-white','bg-slate-800 border-slate-700')}" title="Toggle tema">
+              ${theme === "light" ? "🌙 Dark" : "☀️ Light"}
+            </button>
+            <button id="btnHome" class="text-sm px-3 py-2 rounded-xl shadow hover:shadow-md border ${cd('bg-white','bg-slate-800 border-slate-700')}">
+              Beranda
+            </button>
+          </div>
+        </header>
+      `;
+    }
+
+    function renderSetup() {
+      app.innerHTML = `
+        ${headerBar()}
+        <div class="rounded-2xl shadow p-5 space-y-5 border ${cd('bg-white','bg-slate-800 border-slate-700')}">
+          <p class="${cd('text-slate-600','text-slate-300')}">
+            Pilih mode & durasi, lalu klik <span class="font-semibold">Mulai</span>.
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="p-4 border rounded-2xl flex flex-col gap-3 ${cd('','border-slate-700')}">
+              <div class="font-semibold mb-1">Mode</div>
+              <label class="inline-flex items-center gap-3">
+                <input type="radio" name="mode" value="practice" ${mode === "practice" ? "checked" : ""}/>
+                <span>Latihan (Realtime Feedback)</span>
+              </label>
+              <label class="inline-flex items-center gap-3">
+                <input type="radio" name="mode" value="exam" ${mode === "exam" ? "checked" : ""}/>
+                <span>Ujian (Feedback di Akhir)</span>
+              </label>
+            </div>
+
+            <div class="p-4 border rounded-2xl ${cd('','border-slate-700')}">
+              <label class="font-semibold">Timer (menit)</label>
+              <input id="inpMinutes" type="number" min="1" max="180" value="${Number.isFinite(minutes) ? minutes : 20}"
+                class="mt-2 w-full border rounded-xl px-3 py-2 ${cd('bg-white','bg-slate-900 border-slate-700')}"/>
+              <p class="text-xs mt-2 ${cd('text-slate-500','text-slate-400')}">
+                Misal: 20 → total waktu kuis 20 menit. Waktu berjalan untuk keseluruhan soal.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div class="text-sm ${cd('text-slate-500','text-slate-400')}">Bank Soal: ${QUESTION_BANK.length} butir (acak otomatis)</div>
+            <button id="btnStart" class="px-4 py-2 rounded-2xl shadow ${cd('bg-slate-900 text-white hover:bg-slate-800','bg-slate-100 text-slate-900')}">
+              Mulai ▶
+            </button>
+          </div>
+        </div>
+
+        <footer class="text-center text-xs mt-8 ${cd('text-slate-500','text-slate-400')}">
+          Dibuat dengan ❤️. Edit bank soal di dalam kode.
+        </footer>
+      `;
+
+      // Wire events
+      $("#btnTheme").onclick = () => {
+        theme = theme === "light" ? "dark" : "light";
+        lsSet("qz_theme", theme);
+        applyTheme();
+        render();
+      };
+      $("#btnHome").onclick = () => { // already home
+        stage = "setup"; stopTimer(); render();
+      };
+      $$("#app input[name='mode']").forEach(el => {
+        el.addEventListener("change", (e) => {
+          mode = e.target.value;
+          lsSet("qz_mode", mode);
+        });
+      });
+      $("#inpMinutes").addEventListener("input", (e) => {
+        const v = Math.max(1, Math.min(180, Number(e.target.value) || 1));
+        minutes = v;
+        lsSet("qz_timer_minutes", minutes);
+      });
+      $("#btnStart").onclick = startQuiz;
+    }
+
+    function renderPlay() {
+      const current = playQuestions[currentIdx];
+      const progress = playQuestions.length ? Math.round((currentIdx / playQuestions.length) * 100) : 0;
+      const isPractice = mode === "practice";
+      const isRevealed = revealed[currentIdx] || false;
+      const userChoice = answers[currentIdx] ?? null;
+      const correct = current.correctChoice;
+
+      app.innerHTML = `
+        ${headerBar()}
+        <div class="space-y-4">
+          <div class="rounded-2xl shadow p-5 border ${cd('bg-white','bg-slate-800 border-slate-700')}">
+            <div class="flex items-center justify-between">
+              <div class="text-sm ${cd('text-slate-500','text-slate-400')}">
+                Soal ${currentIdx + 1} dari ${playQuestions.length}
+              </div>
+              <div class="text-sm font-semibold ${remaining <= 15 ? 'pulse' : ''}">
+                ⏳ ${fmt(remaining)}
+              </div>
+            </div>
+            <div class="w-full h-2 rounded-full mt-3 ${cd('bg-slate-200','bg-slate-700')}">
+              <div class="h-2 rounded-full ${cd('bg-slate-900','bg-slate-100')}" style="width:${progress}%"></div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl shadow p-5 space-y-4 border ${cd('bg-white','bg-slate-800 border-slate-700')}">
+            ${current.category ? `<span class="inline-block text-xs px-2 py-1 rounded-full border ${cd('bg-slate-100','bg-slate-700 border-slate-600')}">${current.category}</span>` : ""}
+            <h2 class="text-lg md:text-xl font-semibold leading-relaxed">${current.text}</h2>
+
+            <div class="grid gap-3 mt-2" id="choices"></div>
+
+            ${isPractice && isRevealed ? `
+              <div class="mt-4 p-3 rounded-xl border ${cd('bg-slate-50','bg-slate-900 border-slate-700')}">
+                ${userChoice === correct
+                  ? `<div class="${cd('font-semibold text-green-700','font-semibold text-green-300')}">✅ Benar! Jawaban yang tepat: ${correct}</div>`
+                  : `<div class="${cd('font-semibold text-red-700','font-semibold text-red-300')}">❌ Salah. Kunci jawaban: ${correct}</div>`}
+              </div>
+            ` : ""}
+
+            <div class="flex items-center justify-between mt-4">
+              <button id="btnPrev" class="px-4 py-2 rounded-2xl border disabled:opacity-40 ${cd('bg-white hover:bg-slate-50','bg-slate-900 hover:bg-slate-800 border-slate-700')}"
+                ${currentIdx === 0 ? "disabled" : ""}>
+                ◀ Sebelumnya
+              </button>
+              <button id="btnNext" class="px-4 py-2 rounded-2xl disabled:opacity-40 ${cd('bg-slate-900 text-white hover:bg-slate-800','bg-slate-100 text-slate-900')}"
+                ${isPractice && !isRevealed ? "disabled" : ""}>
+                ${currentIdx === playQuestions.length - 1 ? "Selesai" : "Berikutnya ▶"}
+              </button>
+            </div>
+          </div>
+
+          <footer class="text-center text-xs mt-2 ${cd('text-slate-500','text-slate-400')}">
+            Dibuat dengan ❤️. Edit bank soal di dalam kode.
+          </footer>
+        </div>
+      `;
+
+      // Render choices with state styles
+      const chWrap = $("#choices");
+      current.choices.forEach((c) => {
+        const selected = answers[currentIdx] === c;
+        const wrong = isPractice && isRevealed && selected && c !== correct;
+        const right = isPractice && isRevealed && c === correct;
+
+        let base = "text-left px-4 py-3 rounded-xl border transition shadow-sm ";
+        let style = cd("bg-white hover:bg-slate-50","bg-slate-900 hover:bg-slate-800 border-slate-700");
+        if (!isPractice && selected) style = cd("bg-slate-100","bg-slate-700");
+        if (isPractice && !isRevealed && selected) style = "bg-slate-900 text-white border-slate-900";
+        if (right) style = cd("bg-green-50 text-green-800 border-green-600","bg-green-900/30 text-green-200 border-green-500");
+        if (wrong) style = cd("bg-red-50 text-red-800 border-red-600","bg-red-900/30 text-red-200 border-red-500");
+
+        const btn = document.createElement("button");
+        btn.className = `${base} ${style} ${(isPractice && isRevealed) ? "cursor-not-allowed" : ""}`;
+        btn.textContent = c;
+        btn.disabled = isPractice && isRevealed;
+        btn.onclick = () => selectAnswer(c);
+        chWrap.appendChild(btn);
+      });
+
+      // Wire nav
+      $("#btnPrev").onclick = goPrev;
+      $("#btnNext").onclick = goNext;
+
+      // Header actions
+      $("#btnTheme").onclick = () => {
+        theme = theme === "light" ? "dark" : "light";
+        lsSet("qz_theme", theme);
+        applyTheme();
+        render();
+      };
+      $("#btnHome").onclick = () => { resetToSetup(); render(); };
+    }
+
+    function renderResult() {
+      const score = computeScore();
+      const total = playQuestions.length;
+
+      app.innerHTML = `
+        ${headerBar()}
+        <div class="rounded-2xl shadow p-5 space-y-5 border ${cd('bg-white','bg-slate-800 border-slate-700')}">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold">Hasil</h2>
+            <div class="text-right">
+              <div class="text-lg">Skor: <span class="font-semibold">${score}</span> / ${total}</div>
+              <div class="text-sm ${cd('text-slate-500','text-slate-400')}">Waktu terpakai: ${fmt(elapsed)} dari ${fmt((Number.isFinite(minutes) && minutes > 0 ? minutes : 1) * 60)}</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="btnRetry" class="px-4 py-2 rounded-2xl ${cd('bg-slate-900 text-white hover:bg-slate-800','bg-slate-100 text-slate-900')}">
+              Coba Lagi (Acak Ulang)
+            </button>
+            <button id="btnBack" class="px-4 py-2 rounded-2xl border ${cd('bg-white hover:bg-slate-50','bg-slate-900 hover:bg-slate-800 border-slate-700')}">
+              Kembali ke Pengaturan
+            </button>
+          </div>
+
+          <div class="mt-4">
+            <h3 class="font-semibold mb-3">Review Jawaban</h3>
+            <ol class="space-y-3 list-decimal ml-5">
+              ${
+                playQuestions.map((q, i) => {
+                  const user = answers[i];
+                  const correct = q.correctChoice;
+                  const benar = user === correct;
+                  return `
+                    <li class="rounded-xl p-3 border ${cd('bg-slate-50','bg-slate-900 border-slate-700')}">
+                      <div class="font-medium mb-1">${q.text}</div>
+                      <div class="text-sm">
+                        Jawaban kamu: ${
+                          user
+                            ? `<span class="${benar ? cd('text-green-700','text-green-300') : cd('text-red-700','text-red-300')}">${user}</span>`
+                            : `<span class="${cd('italic text-slate-500','italic text-slate-400')}">(belum dijawab)</span>`
+                        }
+                      </div>
+                      <div class="text-sm">Kunci: <span class="font-medium">${correct}</span></div>
+                    </li>
+                  `;
+                }).join("")
+              }
+            </ol>
+          </div>
+        </div>
+
+        <footer class="text-center text-xs mt-8 ${cd('text-slate-500','text-slate-400')}">
+          Dibuat dengan ❤️. Edit bank soal di dalam kode.
+        </footer>
+      `;
+
+      $("#btnRetry").onclick = startQuiz;
+      $("#btnBack").onclick = () => { resetToSetup(); render(); };
+
+      $("#btnTheme").onclick = () => {
+        theme = theme === "light" ? "dark" : "light";
+        lsSet("qz_theme", theme);
+        applyTheme();
+        render();
+      };
+      $("#btnHome").onclick = () => { resetToSetup(); render(); };
+    }
+
+    // ==========================
+    // LOGIC
+    // ==========================
+    function startQuiz() {
+      stopTimer();
+      const base = shuffleArray(QUESTION_BANK);
+      playQuestions = base.map(q => {
+        const shuffledChoices = shuffleArray(q.choices);
+        const correct = q.choices[q.answerIndex];
+        return {
+          id: q.id,
+          text: q.text,
+          choices: shuffledChoices,
+          correctChoice: correct,
+          category: q.category
+        };
+      });
+      currentIdx = 0;
+      answers = Array(playQuestions.length).fill(null);
+      revealed = Array(playQuestions.length).fill(false);
+
+      const m = Number.isFinite(minutes) && minutes > 0 ? minutes : 1;
+      remaining = Math.max(1, m) * 60;
+      elapsed = 0;
+      stage = "play";
+      startTimer();
+      render();
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(() => {
+        remaining -= 1;
+        elapsed += 1;
+        if (remaining <= 0) {
+          remaining = 0;
+          stopTimer();
+          stage = "result";
+        }
+        render();
+      }, 1000);
+    }
+    function stopTimer() {
+      if (timerId) { clearInterval(timerId); timerId = null; }
+    }
+
+    function selectAnswer(choice) {
+      answers[currentIdx] = choice;
+      if (mode === "practice") {
+        if (!revealed[currentIdx]) {
+          revealed[currentIdx] = true;
+        }
+      }
+      render();
+    }
+
+    function goNext() {
+      if (stage !== "play") return;
+      if (currentIdx < playQuestions.length - 1) {
+        currentIdx += 1;
+        render();
+      } else {
+        stage = "result";
+        stopTimer();
+        render();
+      }
+    }
+
+    function goPrev() {
+      if (stage !== "play") return;
+      if (currentIdx > 0) {
+        currentIdx -= 1;
+        render();
+      }
+    }
+
+    function computeScore() {
+      let s = 0;
+      for (let i = 0; i < playQuestions.length; i++) {
+        if (answers[i] && answers[i] === playQuestions[i].correctChoice) s++;
+      }
+      return s;
+    }
+
+    function resetToSetup() {
+      stage = "setup";
+      playQuestions = [];
+      answers = [];
+      revealed = [];
+      currentIdx = 0;
+      remaining = 0;
+      elapsed = 0;
+      stopTimer();
+    }
+
+    // ==========================
+    // INIT
+    // ==========================
+    render();
+  </script>
+</body>
+</html>
